@@ -13,8 +13,7 @@ class DefaultNanocRunner
   class << self
 
     def run
-      runner = DefaultNanocRunner.new
-      runner.run
+      DefaultNanocRunner.new.run
     end
 
   end
@@ -32,37 +31,36 @@ class DefaultNanocRunner
   def run
     start_at = Time.now
 
-    @compiled_reps = 0
-    @skipped_reps  = 0
-    @rep_times     = {}
+    @created_reps = 0
+    @updated_reps = 0
+    @skipped_reps = 0
+    @rep_times    = {}
 
     begin
       puts 'Compiling site...'
-      site.compile
+      site.load_data
+      site.compiler.run(nil, :force => false)
 
       # success
       reps = site.items.map { |i| i.reps }.flatten
 
       reps.select { |r| !r.compiled? }.each do |rep|
-        rep.raw_paths.each do |snapshot_name, filename|
-          next if filename.nil?
-          duration = @rep_times[filename]
-          Nanoc3::CLI::Logger.instance.file(:high, :skip, filename, duration)
-          @skipped_reps += 1
-        end
+        next if rep.raw_path.nil?
+        duration = @rep_times[rep.raw_path]
+        Nanoc3::CLI::Logger.instance.file(:high, :skip, rep.raw_path, duration)
+        @skipped_reps += 1
       end
-      @compiled_reps = reps.size - @skipped_reps
       
       end_at = Time.now - start_at
       puts
       puts "Site compiled in %.2f seconds" % end_at
-      Guard::NanocNotifier.notify(true, @compiled_reps, @skipped_reps, end_at)
+      Guard::NanocNotifier.notify(true, @created_reps, @updated_reps, @skipped_reps, end_at)
 
     rescue Exception => e
       # failure
       puts 'Failed to compile site'
       print_error(e)
-      Guard::NanocNotifier.notify(false, 0, 0, Time.now - start_at)
+      Guard::NanocNotifier.notify(false, 0, 0, 0, Time.now - start_at)
     end
 
   end
@@ -70,18 +68,30 @@ class DefaultNanocRunner
   private
 
   def setup_notifications
-    Nanoc3::NotificationCenter.on(:rep_written) do |rep, path, is_created, is_modified|
-      action = (is_created ? :create : (is_modified ? :update : :identical))
-      duration = Time.now - @rep_times[rep.raw_path] if @rep_times[rep.raw_path]
-      Nanoc3::CLI::Logger.instance.file(:high, action, path, duration)
-    end
-
     Nanoc3::NotificationCenter.on(:compilation_started) do |rep|
       @rep_times[rep.raw_path] = Time.now
     end
 
     Nanoc3::NotificationCenter.on(:compilation_ended) do |rep|
       @rep_times[rep.raw_path] = Time.now - @rep_times[rep.raw_path]
+
+      action = if rep.created?
+        @created_reps += 1
+        :create
+      elsif rep.modified?
+        @updated_reps += 1
+        :update
+      elsif !rep.compiled?
+        nil
+      else
+        :identical
+      end
+
+      unless action.nil?
+        duration = @rep_times[rep.raw_path]
+        Nanoc3::CLI::Logger.instance.file(:high, action, rep.raw_path, duration)
+      end
+
     end
   end
 

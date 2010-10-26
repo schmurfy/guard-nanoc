@@ -6,12 +6,12 @@ describe Guard::NanocNotifier do
   subject { Guard::NanocNotifier }
 
   it 'should format success message' do
-    message = subject.guard_message(true, 2, 4, 10.1)
-    message.should == "2 compiled, 4 skipped\nin 10.1 seconds."
+    message = subject.guard_message(true, 2, 4, 6, 10.1)
+    message.should == "2 created, 4 updated, 6 skipped\nin 10.1 seconds."
   end
 
   it 'should format fail message' do
-    message = subject.guard_message(false, 2, 4, 10.1)
+    message = subject.guard_message(false, 2, 4, 6, 10.1)
     message.should == "Site can't be compiled,\nplease check."
   end
 
@@ -25,11 +25,11 @@ describe Guard::NanocNotifier do
 
   it 'should call Guard::Notifier' do
     ::Guard::Notifier.should_receive(:notify).with(
-      "2 compiled, 4 skipped\nin 10.1 seconds.",
+      "2 created, 4 updated, 6 skipped\nin 10.1 seconds.",
       :title => 'Nanoc site',
       :image => :success
     )
-    subject.notify(true, 2, 4, 10.1)
+    subject.notify(true, 2, 4, 6, 10.1)
   end
 
 end

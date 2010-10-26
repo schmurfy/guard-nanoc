@@ -1,11 +1,13 @@
 # encoding: utf-8
+require 'guard'
+
 module Guard
   class NanocNotifier
 
-    def self.guard_message(result, compiled, skipped, duration)
+    def self.guard_message(result, created, updated, skipped, duration)
       message = ''
       if result
-        message << "%d compiled, %d skipped\nin %.1f seconds." % [compiled, skipped, duration]
+        message << "%d created, %d updated, %d skipped\nin %.1f seconds." % [created, updated, skipped, duration]
       else
         message << "Site can't be compiled,\nplease check."
       end
@@ -21,8 +23,8 @@ module Guard
       end
     end
 
-    def self.notify(result, compiled, skipped, duration)
-      message = guard_message(result, compiled, skipped, duration)
+    def self.notify(result, created, updated, skipped, duration)
+      message = guard_message(result, created, updated, skipped, duration)
       image   = guard_image(result)
 
       ::Guard::Notifier.notify(message, :title => 'Nanoc site', :image => image)

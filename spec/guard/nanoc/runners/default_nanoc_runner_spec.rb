@@ -6,9 +6,9 @@ describe DefaultNanocRunner do
   subject { DefaultNanocRunner.new }
 
   before(:each) do
-    FileUtils.cd(@fixture_path.join('nanoc_site'))
+    FileUtils.cd(@fixture_path.join('bundler'))
 
-    @site = mock(:nanoc_site, :compile => true, :items => [])
+    @site = mock(:nanoc_site, :load_data => true, :compiler => mock(:compiler, :run => true, :stack => []), :items => [])
     Nanoc3::Site.stub!(:new).and_return(@site)
     Nanoc3::CLI::Logger.instance.stub!(:file)
 
@@ -34,41 +34,42 @@ describe DefaultNanocRunner do
   context 'run' do
 
     it 'should call nanoc compile' do
-      @site.should_receive(:compile)
+      @site.should_receive(:compiler)
       subject.run
     end
 
     it 'success should call notifier' do
       @site.should_receive(:items).and_return([mock(:reps, :reps => [
-        mock(:rep, :compiled? => true, :raw_paths => {:test1 => 'test/1'}, :to_ary => nil ),
-        mock(:rep, :compiled? => false, :raw_paths => {:test2 => 'test/2'}, :to_ary => nil ),
-        mock(:rep, :compiled? => false, :raw_paths => {:test3 => 'test/3'}, :to_ary => nil )
+        mock(:rep, :compiled? => true, :crated? => true, :raw_path => 'test/1', :to_ary => nil ),
+        mock(:rep, :compiled? => true, :updated? => true, :raw_path => 'test/2', :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_path => 'test/3', :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_path => 'test/3', :to_ary => nil )
       ])])
-      Guard::NanocNotifier.should_receive(:notify).with(true, 1, 2, anything())
+      Guard::NanocNotifier.should_receive(:notify).with(true, anything(), anything(), 2, anything())
       subject.run
     end
 
     it 'should count skipped reps' do
       @site.should_receive(:items).and_return([mock(:reps, :reps => [
-        mock(:rep, :compiled? => true, :raw_paths => {:test1 => 'test/1'}, :to_ary => nil ),
-        mock(:rep, :compiled? => false, :raw_paths => {:test2 => 'test/2'}, :to_ary => nil ),
-        mock(:rep, :compiled? => false, :raw_paths => {:test3 => 'test/3'}, :to_ary => nil )
+        mock(:rep, :compiled? => true, :crated? => true, :raw_path => 'test/1', :to_ary => nil ),
+        mock(:rep, :compiled? => true, :updated? => true, :raw_path => 'test/2', :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_path => 'test/2', :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_path => 'test/3', :to_ary => nil )
       ])])
       subject.run
-      subject.compiled_reps.should == 1
       subject.skipped_reps.should  == 2
     end
 
     it 'failure should print error' do
-      @site.stub!(:compile).and_return { raise Exception }
+      @site.stub!(:compiler).and_return { raise Exception }
       subject.should_receive(:print_error)
       subject.run
     end
 
     it 'failure should call notifier' do
       subject.stub!(:print_error)
-      @site.stub!(:compile).and_return { raise Exception }
-      Guard::NanocNotifier.should_receive(:notify).with(false, 0, 0, anything())
+      @site.stub!(:compiler).and_return { raise Exception }
+      Guard::NanocNotifier.should_receive(:notify).with(false, 0, 0, 0, anything())
       subject.run
     end
     
