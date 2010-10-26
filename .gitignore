@@ -2,6 +2,8 @@ pkg/*
 *.gem
 .bundle
 Gemfile.lock
+spec/fixtures/nanoc_site/output
+spec/fixtures/nanoc_site/tmp
 
 ## MAC OS
 .DS_Store
