@@ -38,6 +38,16 @@ describe DefaultNanocRunner do
       subject.run
     end
 
+    it 'success should call notifier' do
+      @site.should_receive(:items).and_return([mock(:reps, :reps => [
+        mock(:rep, :compiled? => true, :raw_paths => {:test1 => 'test/1'}, :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_paths => {:test2 => 'test/2'}, :to_ary => nil ),
+        mock(:rep, :compiled? => false, :raw_paths => {:test3 => 'test/3'}, :to_ary => nil )
+      ])])
+      Guard::NanocNotifier.should_receive(:notify).with(true, 1, 2, anything())
+      subject.run
+    end
+
     it 'should count skipped reps' do
       @site.should_receive(:items).and_return([mock(:reps, :reps => [
         mock(:rep, :compiled? => true, :raw_paths => {:test1 => 'test/1'}, :to_ary => nil ),
@@ -52,6 +62,13 @@ describe DefaultNanocRunner do
     it 'failure should print error' do
       @site.stub!(:compile).and_return { raise Exception }
       subject.should_receive(:print_error)
+      subject.run
+    end
+
+    it 'failure should call notifier' do
+      subject.stub!(:print_error)
+      @site.stub!(:compile).and_return { raise Exception }
+      Guard::NanocNotifier.should_receive(:notify).with(false, 0, 0, anything())
       subject.run
     end
     
