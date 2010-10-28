@@ -13,7 +13,8 @@ module Guard
       def initialize(options = {})
         @options = {
           :bundler => File.exist?("#{Dir.pwd}/Gemfile"),
-          :rubygems => false
+          :rubygems => false,
+          :notify => true
         }.merge(options)
       end
 
@@ -21,6 +22,10 @@ module Guard
         message = options[:message] || 'Running Nanoc compiler'
         UI.info message, :reset => true
         system(nanoc_command)
+      end
+
+      def notify?
+        @options[:notify]
       end
 
       def bundler?
@@ -40,7 +45,11 @@ module Guard
         cmd_parts << '-r rubygems' if rubygems?
         cmd_parts << '-r bundler/setup' if bundler?
         cmd_parts << "-r #{File.expand_path('../runners/default_nanoc_runner.rb', __FILE__)}"
-        cmd_parts << '-e \'DefaultNanocRunner.run\''
+        if notify?
+          cmd_parts << '-e \'GUARD_NOTIFY=true; DefaultNanocRunner.run\''
+        else
+          cmd_parts << '-e \'GUARD_NOTIFY=false; DefaultNanocRunner.run\''
+        end
         cmd_parts.join(' ')
       end
 

@@ -54,13 +54,13 @@ class DefaultNanocRunner
       end_at = Time.now - start_at
       puts
       puts "Site compiled in %.2f seconds" % end_at
-      Guard::NanocNotifier.notify(true, @created_reps, @updated_reps, @skipped_reps, end_at)
+      Guard::NanocNotifier.notify(true, @created_reps, @updated_reps, @skipped_reps, end_at) if GUARD_NOTIFY
 
     rescue Exception => e
       # failure
       puts 'Failed to compile site'
       print_error(e)
-      Guard::NanocNotifier.notify(false, 0, 0, 0, Time.now - start_at)
+      Guard::NanocNotifier.notify(false, 0, 0, 0, Time.now - start_at) if GUARD_NOTIFY
     end
 
   end
