@@ -4,54 +4,46 @@ require 'spec_helper'
 describe Guard::Nanoc::Runner do
   subject { Guard::Nanoc::Runner }
 
-  after(:each) do
-    subject.class_eval do
-      @bundler  = nil
-      @rubygems = nil
-    end
-  end
-
   describe 'options' do
 
     describe 'bundler' do
 
-      it 'should set bundler to true by default if Gemfile is present' do
+      it 'default should be true if Gemfile exist' do
         Dir.stub!(:pwd).and_return(@fixture_path.join('bundler'))
-        subject.bundler?.should be_true
+        subject.new.bundler?.should be_true
       end
 
-      it 'should set bundler to false by default if Gemfile is not present' do
+      it 'default should be false if Gemfile don\'t exist' do
         Dir.stub!(:pwd).and_return(@fixture_path.join('empty'))
-        subject.bundler?.should be_false
+        subject.new.bundler?.should be_false
       end
-
-      it 'should use bundler option first' do
+  
+      it 'should be force to false' do
         Dir.stub!(:pwd).and_return(@fixture_path.join('bundler'))
-        subject.bundler?.should be_true
-        subject.set_bundler(:bundler => false)
-        subject.bundler?.should be_false
+        subject.new(:bundler => false).bundler?.should be_false
       end
 
     end
 
     describe 'rubygems' do
 
-      it 'should set rubygems to false by default' do
-        subject.rubygems?.should be_false
+      it 'default should be false if Gemfile exist' do
+        Dir.stub!(:pwd).and_return(@fixture_path.join('bundler'))
+        subject.new.rubygems?.should be_false
       end
 
-      it 'should set rubygems' do
-        subject.stub!(:bundler?).and_return(false)
-        subject.rubygems?.should be_false
-        subject.set_rubygems(:rubygems => true)
-        subject.rubygems?.should be_true
+      it 'default should be false if Gemfile don\'t exist' do
+        Dir.stub!(:pwd).and_return(@fixture_path.join('empty'))
+        subject.new.rubygems?.should be_false
       end
 
-      it 'should set rubygems to false if bundler is set to true' do
-        subject.stub!(:bundler?).and_return(true)
-        subject.rubygems?.should be_false
-        subject.set_rubygems(:rubygems => true)
-        subject.rubygems?.should be_false
+      it 'should be set to true if bundler is disabled' do
+        subject.new(:bundler => false, :rubygems => true).rubygems?.should be_true
+      end
+
+      it 'should not be set to true if bundler is enabled' do
+        Dir.stub!(:pwd).and_return(@fixture_path.join('bundler'))
+        subject.new(:bundler => true, :rubygems => true).rubygems?.should be_false
       end
 
     end
@@ -70,20 +62,21 @@ describe Guard::Nanoc::Runner do
       end
 
       it 'should run without bundler and rubygems' do
+        runner = subject.new
         Guard::UI.should_receive(:info)
-        subject.should_receive(:system).with(
+        runner.should_receive(:system).with(
           "ruby -r #{@default_runner} -e 'DefaultNanocRunner.run'"
         )
-        subject.run
+        runner.run
       end
 
-      it 'should run without bundler and rubygems' do
-        subject.set_rubygems(:rubygems => true)
+      it 'should run without bundler but rubygems' do
+        runner = subject.new(:rubygems => true)
         Guard::UI.should_receive(:info)
-        subject.should_receive(:system).with(
+        runner.should_receive(:system).with(
           "ruby -r rubygems -r #{@default_runner} -e 'DefaultNanocRunner.run'"
         )
-        subject.run
+        runner.run
       end
 
     end
@@ -94,12 +87,31 @@ describe Guard::Nanoc::Runner do
         Dir.stub!(:pwd).and_return(@fixture_path.join('bundler'))
       end
 
-      it 'should run with bundler' do
+      it 'should run with bundler but not rubygems' do
+        runner = subject.new(:bundler => true, :rubygems => false)
         Guard::UI.should_receive(:info)
-        subject.should_receive(:system).with(
+        runner.should_receive(:system).with(
           "bundle exec ruby -r bundler/setup -r #{@default_runner} -e 'DefaultNanocRunner.run'"
         )
-        subject.run
+        runner.run
+      end
+
+      it 'should run without bundler but rubygems' do
+        runner = subject.new(:bundler => false, :rubygems => true)
+        Guard::UI.should_receive(:info)
+        runner.should_receive(:system).with(
+          "ruby -r rubygems -r #{@default_runner} -e 'DefaultNanocRunner.run'"
+        )
+        runner.run
+      end
+
+      it 'should run without bundler and rubygems' do
+        runner = subject.new(:bundler => false, :rubygems => false)
+        Guard::UI.should_receive(:info)
+        runner.should_receive(:system).with(
+          "ruby -r #{@default_runner} -e 'DefaultNanocRunner.run'"
+        )
+        runner.run
       end
 
     end
