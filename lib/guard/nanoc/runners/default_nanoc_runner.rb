@@ -38,7 +38,6 @@ class DefaultNanocRunner
 
     begin
       puts 'Compiling site...'
-      site.load_data
       site.compiler.run(nil, :force => false)
 
       # success
@@ -71,28 +70,35 @@ class DefaultNanocRunner
     Nanoc3::NotificationCenter.on(:compilation_started) do |rep|
       @rep_times[rep.raw_path] = Time.now
     end
-
-    Nanoc3::NotificationCenter.on(:compilation_ended) do |rep|
-      @rep_times[rep.raw_path] = Time.now - @rep_times[rep.raw_path]
-
-      action = if rep.created?
-        @created_reps += 1
-        :create
-      elsif rep.modified?
-        @updated_reps += 1
-        :update
-      elsif !rep.compiled?
-        nil
-      else
-        :identical
-      end
-
+    
+    Nanoc3::NotificationCenter.on(:compilation_failed) do |rep|
+      @rep_times[rep.raw_path] = nil
+      
       unless action.nil?
         duration = @rep_times[rep.raw_path]
         Nanoc3::CLI::Logger.instance.file(:high, action, rep.raw_path, duration)
       end
-
     end
+    
+    Nanoc3::NotificationCenter.on(:rep_written) do |rep, raw_path, is_created, is_modified|
+      @rep_times[raw_path] = Time.now - @rep_times[raw_path]
+      
+      action = if is_created
+        @created_reps += 1
+        :create
+      elsif is_modified
+        @updated_reps += 1
+        :update
+      else
+        :identical
+      end
+      
+      unless action.nil?
+        duration = @rep_times[rep.raw_path]
+        Nanoc3::CLI::Logger.instance.file(:high, action, rep.raw_path, duration)
+      end
+    end
+    
   end
 
   def print_error(error)

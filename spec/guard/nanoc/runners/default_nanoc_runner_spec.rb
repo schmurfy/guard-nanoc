@@ -18,7 +18,7 @@ describe DefaultNanocRunner do
 
     guard_notification(true)
 
-    @site = mock(:nanoc_site, :load_data => true, :compiler => mock(:compiler, :run => true, :stack => []), :items => [])
+    @site = mock(:nanoc_site, :compiler => mock(:compiler, :run => true, :stack => []), :items => [])
     Nanoc3::Site.stub!(:new).and_return(@site)
     Nanoc3::CLI::Logger.instance.stub!(:file)
 
