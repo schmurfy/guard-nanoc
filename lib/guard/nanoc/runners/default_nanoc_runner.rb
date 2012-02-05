@@ -72,12 +72,8 @@ class DefaultNanocRunner
     end
     
     Nanoc3::NotificationCenter.on(:compilation_failed) do |rep|
-      @rep_times[rep.raw_path] = nil
-      
-      unless action.nil?
-        duration = @rep_times[rep.raw_path]
-        Nanoc3::CLI::Logger.instance.file(:high, action, rep.raw_path, duration)
-      end
+      duration = Time.now - @rep_times[rep.raw_path]
+      Nanoc3::CLI::Logger.instance.log(:high, "Compilation failed: #{rep.raw_path}")
     end
     
     Nanoc3::NotificationCenter.on(:rep_written) do |rep, raw_path, is_created, is_modified|
